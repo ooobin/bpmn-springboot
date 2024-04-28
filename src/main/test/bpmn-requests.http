@@ -1,0 +1,28 @@
+###
+# @name 获取流程
+# @no-log
+GET http://localhost:8080/get-processes
+
+###
+# @name 启动流程
+# @no-log
+POST http://localhost:8080/start-process
+Content-Type: application/x-www-form-urlencoded
+
+processDefinitionKey=Process_loan &
+amount=20000 &
+guarantor=none
+
+###
+# @name 获取任务
+# @no-log
+GET http://localhost:8080/tasks
+
+###
+# @name 流程审批
+# @no-log
+POST http://localhost:8080/complete-task
+Content-Type: application/x-www-form-urlencoded
+
+taskId=c160f717-0504-11ef-8860-a2e6ec8ed135 &
+approve=true
