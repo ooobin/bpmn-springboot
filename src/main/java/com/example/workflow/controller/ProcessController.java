@@ -10,7 +10,10 @@ import org.camunda.bpm.engine.runtime.Execution;
 import org.camunda.bpm.engine.task.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.List;
@@ -55,10 +58,12 @@ public class ProcessController {
     @PostMapping("/start-process")
     public String startProcess(@RequestParam("amount") long amount,
                                @RequestParam("guarantor") String guarantor,
+                               @RequestParam("name") String name,
                                @RequestParam("processDefinitionKey") String processDefinitionKey) {
         HashMap<String, Object> map = new HashMap<>();
         map.put("amount", amount);
         map.put("guarantor", guarantor);
+        map.put("name", name);
 
         // 启动流程实例，并传递变量
         Execution execution = runtimeService.startProcessInstanceByKey(processDefinitionKey, map);
@@ -86,15 +91,23 @@ public class ProcessController {
      * @return String
      */
     @PostMapping("/complete-task")
-    public String approveTask(@RequestParam("taskId") String taskId, @RequestParam("approve") boolean approve) {
+    public String approveTask(@RequestParam("taskId") String taskId,
+                              @RequestParam("finalAmount") long finalAmount,
+                              @RequestParam("approve") boolean approve) {
         List<Task> tasks = taskService.createTaskQuery().taskId(taskId).list();
         if (!CollectionUtils.isEmpty(tasks)) {
-            Map<String, Object> approveVariables = new HashMap<>(1);
+            Map<String, Object> approveVariables = taskService.getVariables(taskId);
             approveVariables.put("approve", approve);
+            approveVariables.put("finalAmount", finalAmount);
             taskService.complete(taskId, approveVariables);
             return "任务审核完成，审核"
                     + (approve ? "通过" : "拒绝");
         }
         return "无任务可审核";
+    }
+
+    @PostMapping("/getVariesByTaskId")
+    public Object getVariesByTaskId(@RequestParam("taskId") String taskId) {
+        return taskService.getVariables(taskId);
     }
 }
