@@ -9,12 +9,15 @@ import org.camunda.bpm.engine.repository.ProcessDefinition;
 import org.camunda.bpm.engine.runtime.Execution;
 import org.camunda.bpm.engine.task.Task;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.apache.commons.io.IOUtils;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +25,8 @@ import java.util.stream.Collectors;
 
 @RestController
 public class ProcessController {
+
+    private String processInstanceId;
 
     private final RuntimeService runtimeService;
     private final RepositoryService repositoryService;
@@ -67,6 +72,7 @@ public class ProcessController {
 
         // 启动流程实例，并传递变量
         Execution execution = runtimeService.startProcessInstanceByKey(processDefinitionKey, map);
+        processInstanceId = execution.getProcessInstanceId();
         return "实例启动成功，实例ID：" + execution.getProcessInstanceId();
     }
 
@@ -110,4 +116,26 @@ public class ProcessController {
     public Object getVariesByTaskId(@RequestParam("taskId") String taskId) {
         return taskService.getVariables(taskId);
     }
+
+    @GetMapping("/get-process-instance-id")
+    public String getProcessInstanceId() {
+        return processInstanceId;
+    }
+
+
+    @GetMapping("/getProcessDefinitionXml")
+    public ResponseEntity<ByteArrayResource> getProcessDefinitionXml(@RequestParam("processDefinitionId") String processDefinitionId) {
+        try {
+            InputStream processModel = repositoryService.getProcessModel(processDefinitionId);
+            byte[] bytes = IOUtils.toByteArray(processModel);
+            ByteArrayResource resource = new ByteArrayResource(bytes);
+            return ResponseEntity.ok()
+                    .contentLength(bytes.length)
+                    .contentType(MediaType.parseMediaType("application/xml"))
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 }
